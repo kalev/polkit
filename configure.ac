@@ -130,7 +130,7 @@ AC_DEFINE([GLIB_VERSION_MIN_REQUIRED], [GLIB_VERSION_2_30],
 AC_DEFINE([GLIB_VERSION_MAX_ALLOWED], [G_ENCODE_VERSION(2,34)],
         [Notify us when we'll need to transition away from g_type_init()])
 
-AC_ARG_WITH(mozjs, AS_HELP_STRING([--with-mozjs=@<:@mozjs185/mozjs-17.0|auto@:>@],
+AC_ARG_WITH(mozjs, AS_HELP_STRING([--with-mozjs=@<:@mozjs185/mozjs-24|auto@:>@],
 		                  [Specify version of Spidermonkey to use]),,
             with_mozjs=auto)
 AS_IF([test x${with_mozjs} != xauto], [
@@ -138,8 +138,8 @@ AS_IF([test x${with_mozjs} != xauto], [
 ], [
   PKG_CHECK_MODULES(LIBJS, [mozjs185], have_mozjs185=yes, have_mozjs185=no)
   AS_IF([test x${have_mozjs185} = xno], [
-  PKG_CHECK_MODULES(LIBJS, [mozjs-17.0], have_mozjs17=yes,
-   [AC_MSG_ERROR([Could not find mozjs185 or mozjs-17.0; see http://ftp.mozilla.org/pub/mozilla.org/js/])])
+  PKG_CHECK_MODULES(LIBJS, [mozjs-24], have_mozjs24=yes,
+   [AC_MSG_ERROR([Could not find mozjs185 or mozjs-24; see http://ftp.mozilla.org/pub/mozilla.org/js/])])
   ])
 ])
 AC_SUBST(LIBJS_CFLAGS)
