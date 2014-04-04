@@ -39,7 +39,10 @@
 #include <systemd/sd-login.h>
 #endif /* HAVE_LIBSYSTEMD_LOGIN */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winvalid-offsetof"
 #include <jsapi.h>
+#pragma GCC diagnostic pop
 
 #include "initjs.h" /* init.js */
 
