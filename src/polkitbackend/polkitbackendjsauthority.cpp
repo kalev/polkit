@@ -285,7 +285,7 @@ load_scripts (PolkitBackendJsAuthority  *authority)
 
   for (l = files; l != NULL; l = l->next)
     {
-      const gchar *filename = l->data;
+      const gchar *filename = (const gchar *) l->data;
 #if JS_VERSION == 186
       JSScript *script;
 #else
@@ -553,7 +553,7 @@ polkit_backend_js_authority_finalize (GObject *object)
     {
       GFileMonitor *monitor = authority->priv->dir_monitors[n];
       g_signal_handlers_disconnect_by_func (monitor,
-                                            G_CALLBACK (on_dir_monitor_changed),
+                                            (gpointer) on_dir_monitor_changed,
                                             authority);
       g_object_unref (monitor);
     }
@@ -634,7 +634,7 @@ polkit_backend_js_authority_class_init (PolkitBackendJsAuthorityClass *klass)
                                                        NULL,
                                                        NULL,
                                                        G_TYPE_STRV,
-                                                       G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+                                                       (GParamFlags) (G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE)));
 
 
   g_type_class_add_private (klass, sizeof (PolkitBackendJsAuthorityPrivate));
@@ -1314,8 +1314,8 @@ spawn_cb (GObject       *source_object,
           GAsyncResult  *res,
           gpointer       user_data)
 {
-  SpawnData *data = user_data;
-  data->res = g_object_ref (res);
+  SpawnData *data = (SpawnData *) user_data;
+  data->res = (GAsyncResult *) g_object_ref (res);
   g_main_loop_quit (data->loop);
 }
 
@@ -1624,7 +1624,7 @@ static void
 utils_on_cancelled (GCancellable *cancellable,
                     gpointer      user_data)
 {
-  UtilsSpawnData *data = user_data;
+  UtilsSpawnData *data = (UtilsSpawnData *) user_data;
   GError *error;
 
   error = NULL;
@@ -1639,7 +1639,7 @@ utils_read_child_stderr (GIOChannel *channel,
                          GIOCondition condition,
                          gpointer user_data)
 {
-  UtilsSpawnData *data = user_data;
+  UtilsSpawnData *data = (UtilsSpawnData *) user_data;
   gchar buf[1024];
   gsize bytes_read;
 
@@ -1653,7 +1653,7 @@ utils_read_child_stdout (GIOChannel *channel,
                          GIOCondition condition,
                          gpointer user_data)
 {
-  UtilsSpawnData *data = user_data;
+  UtilsSpawnData *data = (UtilsSpawnData *) user_data;
   gchar buf[1024];
   gsize bytes_read;
 
@@ -1667,7 +1667,7 @@ utils_child_watch_cb (GPid     pid,
                       gint     status,
                       gpointer user_data)
 {
-  UtilsSpawnData *data = user_data;
+  UtilsSpawnData *data = (UtilsSpawnData *) user_data;
   gchar *buf;
   gsize buf_size;
 
@@ -1696,7 +1696,7 @@ utils_child_watch_cb (GPid     pid,
 static gboolean
 utils_timeout_cb (gpointer user_data)
 {
-  UtilsSpawnData *data = user_data;
+  UtilsSpawnData *data = (UtilsSpawnData *) user_data;
 
   data->timed_out = TRUE;
 
@@ -1725,12 +1725,12 @@ utils_spawn (const gchar *const  *argv,
   data->simple = g_simple_async_result_new (NULL,
                                             callback,
                                             user_data,
-                                            utils_spawn);
+                                            (gpointer) utils_spawn);
   data->main_context = g_main_context_get_thread_default ();
   if (data->main_context != NULL)
     g_main_context_ref (data->main_context);
 
-  data->cancellable = cancellable != NULL ? g_object_ref (cancellable) : NULL;
+  data->cancellable = cancellable != NULL ? (GCancellable *) g_object_ref (cancellable) : NULL;
 
   data->child_stdout = g_string_new (NULL);
   data->child_stderr = g_string_new (NULL);
@@ -1763,7 +1763,7 @@ utils_spawn (const gchar *const  *argv,
   if (!g_spawn_async_with_pipes (NULL, /* working directory */
                                  (gchar **) argv,
                                  NULL, /* envp */
-                                 G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+                                 (GSpawnFlags) (G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD),
                                  NULL, /* child_setup */
                                  NULL, /* child_setup's user_data */
                                  &(data->child_pid),
@@ -1830,7 +1830,7 @@ utils_spawn_finish (GAsyncResult   *res,
   if (g_simple_async_result_propagate_error (simple, error))
     goto out;
 
-  data = g_simple_async_result_get_op_res_gpointer (simple);
+  data = (UtilsSpawnData *) g_simple_async_result_get_op_res_gpointer (simple);
 
   if (data->timed_out)
     {
