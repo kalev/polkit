@@ -32,7 +32,7 @@ libpolkit_backend_1_la_SOURCES =                                   			\
 	polkitbackendprivate.h								\
 	polkitbackendauthority.h		polkitbackendauthority.c		\
 	polkitbackendinteractiveauthority.h	polkitbackendinteractiveauthority.c	\
-	polkitbackendjsauthority.h		polkitbackendjsauthority.c		\
+	polkitbackendjsauthority.h		polkitbackendjsauthority.cpp		\
 	polkitbackendactionpool.h		polkitbackendactionpool.c		\
 	polkitbackendconfigsource.h		polkitbackendconfigsource.c		\
 	polkitbackendactionlookup.h		polkitbackendactionlookup.c		\
@@ -53,6 +53,14 @@ libpolkit_backend_1_la_CFLAGS =                                        	\
 	$(LIBSYSTEMD_LOGIN_CFLAGS)					\
 	$(LIBJS_CFLAGS)							\
         $(NULL)
+
+libpolkit_backend_1_la_CXXFLAGS =					\
+	-D_POLKIT_COMPILATION						\
+	-D_POLKIT_BACKEND_COMPILATION					\
+	$(GLIB_CFLAGS)							\
+	$(LIBSYSTEMD_LOGIN_CFLAGS)					\
+	$(LIBJS_CFLAGS)							\
+	$(NULL)
 
 libpolkit_backend_1_la_LIBADD =                               		\
         $(GLIB_LIBS)							\
