@@ -85,7 +85,7 @@ static JSBool execute_script_with_runaway_killer (PolkitBackendJsAuthority *auth
 #if JS_VERSION == 186
                                                   JSScript                 *script,
 #else
-                                                  JSObject                 *script,
+                                                  JSScript                 *script,
 #endif
                                                   jsval                    *rval);
 
@@ -143,11 +143,11 @@ G_DEFINE_TYPE (PolkitBackendJsAuthority, polkit_backend_js_authority, POLKIT_BAC
 
 /* ---------------------------------------------------------------------------------------------------- */
 
-static JSClass js_global_class = {
+struct JSClass js_global_class = {
   "global",
   JSCLASS_GLOBAL_FLAGS,
   JS_PropertyStub,
-  JS_PropertyStub,
+  JS_DeletePropertyStub,
   JS_PropertyStub,
   JS_StrictPropertyStub,
   JS_EnumerateStub,
@@ -156,18 +156,18 @@ static JSClass js_global_class = {
 #if JS_VERSION == 186      
   NULL,
 #else
-  JS_FinalizeStub,
+  NULL,
 #endif
   JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
 /* ---------------------------------------------------------------------------------------------------- */
 
-static JSClass js_polkit_class = {
+struct JSClass js_polkit_class = {
   "Polkit",
   0,
   JS_PropertyStub,
-  JS_PropertyStub,
+  JS_DeletePropertyStub,
   JS_PropertyStub,
   JS_StrictPropertyStub,
   JS_EnumerateStub,
@@ -176,7 +176,7 @@ static JSClass js_polkit_class = {
 #if JS_VERSION == 186      
   NULL,
 #else
-  JS_FinalizeStub,
+  NULL,
 #endif
   JSCLASS_NO_OPTIONAL_MEMBERS
 };
@@ -292,7 +292,7 @@ load_scripts (PolkitBackendJsAuthority  *authority)
 #if JS_VERSION == 186
       JSScript *script;
 #else
-      JSObject *script;
+      JSScript *script;
 #endif
 
 #if JS_VERSION == 186
@@ -301,9 +301,12 @@ load_scripts (PolkitBackendJsAuthority  *authority)
 				   filename);
       
 #else
-      script = JS_CompileFile (authority->priv->cx,
-			       authority->priv->js_global,
-			       filename);
+      js::RootedObject rootedObj(authority->priv->cx, authority->priv->js_global);
+      JS::CompileOptions options(authority->priv->cx);
+      script = JS::Compile (authority->priv->cx,
+                            rootedObj,
+                            options,
+                            filename);
 #endif
       if (script == NULL)
         {
@@ -359,7 +362,7 @@ reload_scripts (PolkitBackendJsAuthority *authority)
 #if JS_VERSION == 186
   JS_GC (authority->priv->rt);
 #else
-  JS_GC (authority->priv->cx);
+  JS_GC (authority->priv->rt);
 #endif
 
   load_scripts (authority);
@@ -450,8 +453,11 @@ static void
 polkit_backend_js_authority_constructed (GObject *object)
 {
   PolkitBackendJsAuthority *authority = POLKIT_BACKEND_JS_AUTHORITY (object);
+  JS::CompartmentOptions options;
 
-  authority->priv->rt = JS_NewRuntime (8L * 1024L * 1024L);
+  options.setVersion(JSVERSION_LATEST);
+
+  authority->priv->rt = JS_NewRuntime (8L * 1024L * 1024L, JS_USE_HELPER_THREADS);
   if (authority->priv->rt == NULL)
     goto fail;
 
@@ -465,7 +471,6 @@ polkit_backend_js_authority_constructed (GObject *object)
   JS_SetOptions (authority->priv->cx,
                  JSOPTION_VAROBJFIX
                  /* | JSOPTION_JIT | JSOPTION_METHODJIT*/);
-  JS_SetVersion(authority->priv->cx, JSVERSION_LATEST);
   JS_SetErrorReporter(authority->priv->cx, report_error);
   JS_SetContextPrivate (authority->priv->cx, authority);
 
@@ -473,7 +478,7 @@ polkit_backend_js_authority_constructed (GObject *object)
 #if JS_VERSION == 186
     JS_NewGlobalObject (authority->priv->cx, &js_global_class, NULL);
 #else
-    JS_NewCompartmentAndGlobalObject (authority->priv->cx, &js_global_class, NULL);
+    JS_NewGlobalObject (authority->priv->cx, &js_global_class, NULL, options);
 #endif
 
   if (authority->priv->js_global == NULL)
@@ -955,7 +960,7 @@ rkt_on_timeout (gpointer user_data)
 #if JS_VERSION == 186
   JS_TriggerOperationCallback (authority->priv->rt);
 #else
-  JS_TriggerOperationCallback (authority->priv->cx);
+  JS_TriggerOperationCallback (authority->priv->rt);
 #endif
 
   /* keep source around so we keep trying to kill even if the JS bit catches the exception
@@ -994,7 +999,7 @@ execute_script_with_runaway_killer (PolkitBackendJsAuthority *authority,
 #if JS_VERSION == 186
                                     JSScript                 *script,
 #else
-                                    JSObject                 *script,
+                                    JSScript                 *script,
 #endif
                                     jsval                    *rval)
 {
